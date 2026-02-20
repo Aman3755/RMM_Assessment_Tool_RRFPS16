@@ -2,175 +2,247 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { QUESTIONS, SECTIONS } from "@/data/questions";
+import {
+    ROUTING_QUESTION,
+    QUESTIONS_BY_BLOCK,
+    BLOCKS,
+} from "@/data/questions";
 
 const STORAGE_KEY = "rmm_assessment_responses";
 const INFO_KEY = "rmm_respondent_info";
+const ROUTING_KEY = "rmm_routing_block";
 
 export default function AssessmentPage() {
     const router = useRouter();
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [phase, setPhase] = useState("intro");   // intro | routing | questions | done
     const [responses, setResponses] = useState({});
-    const [showError, setShowError] = useState(false);
-    const [started, setStarted] = useState(false);
     const [respondentInfo, setRespondentInfo] = useState({ name: "", organization: "", role: "" });
+    const [selectedBlock, setSelectedBlock] = useState(null);      // "program_management" | "evaluation" | "invoicing"
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [showError, setShowError] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
-    // Restore from storage
+    // Restore from storage on mount
     useEffect(() => {
+        setMounted(true);
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
             const savedInfo = localStorage.getItem(INFO_KEY);
+            const savedBlock = localStorage.getItem(ROUTING_KEY);
             if (saved) setResponses(JSON.parse(saved));
             if (savedInfo) setRespondentInfo(JSON.parse(savedInfo));
+            if (savedBlock) setSelectedBlock(savedBlock);
         } catch { }
     }, []);
 
-    // Persist responses
+    // Persist any time responses/block change
     useEffect(() => {
+        if (!mounted) return;
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(responses)); } catch { }
-    }, [responses]);
+    }, [responses, mounted]);
 
-    const question = QUESTIONS[currentIndex];
-    const progress = ((currentIndex) / QUESTIONS.length) * 100;
+    if (!mounted) return null;
 
-    // Section info
-    const currentSection = SECTIONS.find((s) => s.id === question?.section);
-    const sectionsDone = SECTIONS.filter((s) =>
-        QUESTIONS.filter((q) => q.section === s.id).every((q) => responses[q.id] !== undefined)
-    ).map((s) => s.id);
+    // Questions for the chosen block
+    const blockQuestions = selectedBlock ? QUESTIONS_BY_BLOCK[selectedBlock] ?? [] : [];
+    const totalQ = blockQuestions.length;
+    const progress = totalQ > 0 ? (currentIndex / totalQ) * 100 : 0;
+    const currentBlock = BLOCKS.find((b) => b.id === selectedBlock);
 
+    // ── Setters ─────────────────────────────────────────────────────────────────
     const setAnswer = useCallback((id, value) => {
         setResponses((prev) => ({ ...prev, [id]: value }));
         setShowError(false);
     }, []);
 
-    const canAdvance = () => {
-        if (!question.required) return true;
-        const val = responses[question.id];
-        if (val === undefined || val === null) return false;
-        if (typeof val === "string" && val.trim() === "") return false;
-        if (Array.isArray(val) && val.length === 0) return false;
-        return true;
+    const canAdvanceQuestion = () => {
+        const q = blockQuestions[currentIndex];
+        const val = responses[q?.id];
+        if (!q?.required) return true;
+        return val !== undefined && val !== null && val !== "";
+    };
+
+    // ── Navigation ───────────────────────────────────────────────────────────────
+    const handleIntroNext = () => {
+        try { localStorage.setItem(INFO_KEY, JSON.stringify(respondentInfo)); } catch { }
+        setPhase("routing");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    const handleRoutingSelect = (blockId) => {
+        setSelectedBlock(blockId);
+        try { localStorage.setItem(ROUTING_KEY, blockId); } catch { }
+        setCurrentIndex(0);
+        setPhase("questions");
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const handleNext = () => {
-        if (!canAdvance()) { setShowError(true); return; }
-        if (currentIndex < QUESTIONS.length - 1) {
+        if (!canAdvanceQuestion()) { setShowError(true); return; }
+        if (currentIndex < totalQ - 1) {
             setCurrentIndex((i) => i + 1);
             setShowError(false);
             window.scrollTo({ top: 0, behavior: "smooth" });
         } else {
-            try { localStorage.setItem(INFO_KEY, JSON.stringify(respondentInfo)); } catch { }
             router.push("/results");
         }
     };
 
     const handleBack = () => {
+        setShowError(false);
         if (currentIndex > 0) {
             setCurrentIndex((i) => i - 1);
-            setShowError(false);
-            window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+            setPhase("routing");
         }
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const handleSkip = () => {
-        if (!question.required) {
-            if (currentIndex < QUESTIONS.length - 1) {
-                setCurrentIndex((i) => i + 1);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-            } else {
-                router.push("/results");
-            }
-        }
-    };
-
-    // ── Intro screen ──────────────────────────────────────────────────────
-    if (!started) {
+    // ── PHASE: INTRO ─────────────────────────────────────────────────────────────
+    if (phase === "intro") {
         return (
-            <>
-                <ProgressBarUI progress={0} currentIndex={0} sections={SECTIONS} sectionsDone={[]} currentSection={null} />
-                <div className="assessment-main">
-                    <div className="container">
-                        <div className="question-card">
-                            <div className="intro-screen">
-                                <div className="intro-icon">📋</div>
-                                <h2 style={{ marginBottom: 12 }}>Before You Begin</h2>
-                                <p style={{ maxWidth: 520, margin: "0 auto 28px", fontSize: "0.95rem" }}>
-                                    Please tell us a little about yourself. This information will appear on your PDF report cover page.
-                                    All fields are optional.
-                                </p>
+            <div className="assessment-main">
+                <div className="container">
+                    <div className="question-card">
+                        <div className="intro-screen">
+                            <div className="intro-icon">📋</div>
+                            <h2 style={{ marginBottom: 12 }}>Before You Begin</h2>
+                            <p style={{ maxWidth: 520, margin: "0 auto 28px", fontSize: "0.95rem" }}>
+                                Please tell us a little about yourself. This information will appear
+                                on your PDF report. All fields are optional.
+                            </p>
 
-                                <div className="form-grid" style={{ textAlign: "left", maxWidth: 520, margin: "0 auto" }}>
-                                    {[
-                                        { key: "name", label: "Your Name", placeholder: "Jane Smith" },
-                                        { key: "organization", label: "Agency / Organization", placeholder: "City of Nashville DPW" },
-                                        { key: "role", label: "Your Role / Title", placeholder: "Transportation Manager" },
-                                    ].map((f) => (
-                                        <div className="form-group" key={f.key} style={{ gridColumn: f.key === "organization" ? "1 / -1" : undefined }}>
-                                            <label className="form-label">{f.label}</label>
-                                            <input
-                                                className="form-input"
-                                                placeholder={f.placeholder}
-                                                value={respondentInfo[f.key]}
-                                                onChange={(e) =>
-                                                    setRespondentInfo((prev) => ({ ...prev, [f.key]: e.target.value }))
-                                                }
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <button
-                                    className="btn btn-primary btn-lg"
-                                    style={{ marginTop: 32 }}
-                                    onClick={() => {
-                                        try { localStorage.setItem(INFO_KEY, JSON.stringify(respondentInfo)); } catch { }
-                                        setStarted(true);
-                                    }}
-                                >
-                                    Start Assessment →
-                                </button>
+                            <div
+                                className="form-grid"
+                                style={{ textAlign: "left", maxWidth: 520, margin: "0 auto" }}
+                            >
+                                {[
+                                    { key: "name", label: "Your Name", placeholder: "Jane Smith" },
+                                    { key: "organization", label: "Agency / Organization", placeholder: "TDOT Research Office" },
+                                    { key: "role", label: "Your Role / Title", placeholder: "Research Manager" },
+                                ].map((f) => (
+                                    <div
+                                        className="form-group"
+                                        key={f.key}
+                                        style={{ gridColumn: f.key === "organization" ? "1 / -1" : undefined }}
+                                    >
+                                        <label className="form-label">{f.label}</label>
+                                        <input
+                                            className="form-input"
+                                            placeholder={f.placeholder}
+                                            value={respondentInfo[f.key]}
+                                            onChange={(e) =>
+                                                setRespondentInfo((prev) => ({ ...prev, [f.key]: e.target.value }))
+                                            }
+                                        />
+                                    </div>
+                                ))}
                             </div>
+
+                            <button
+                                className="btn btn-primary btn-lg"
+                                style={{ marginTop: 32 }}
+                                onClick={handleIntroNext}
+                            >
+                                Continue →
+                            </button>
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
         );
     }
 
-    // ── Question screen ───────────────────────────────────────────────────
+    // ── PHASE: ROUTING ───────────────────────────────────────────────────────────
+    if (phase === "routing") {
+        return (
+            <div className="assessment-main">
+                <div className="container">
+                    <div className="question-card">
+                        <div className="question-section-tag">🔀 Routing</div>
+                        <div className="question-text" style={{ marginBottom: 28 }}>
+                            {ROUTING_QUESTION.text}
+                        </div>
+
+                        <div className="options-list">
+                            {ROUTING_QUESTION.options.map((opt) => (
+                                <div
+                                    key={opt.value}
+                                    className={`option-item${selectedBlock === opt.value ? " selected" : ""}`}
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => handleRoutingSelect(opt.value)}
+                                >
+                                    <div style={{ pointerEvents: "none" }}>
+                                        <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--gray-900)" }}>
+                                            {opt.label}
+                                        </div>
+                                        <div style={{ fontSize: "0.8rem", color: "var(--blue)", marginTop: 2 }}>
+                                            → {opt.block}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="assessment-nav" style={{ marginTop: 28 }}>
+                            <button className="btn btn-ghost" onClick={() => setPhase("intro")}>
+                                ← Back
+                            </button>
+                            <span style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>
+                                Select one to continue
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ── PHASE: QUESTIONS ──────────────────────────────────────────────────────────
+    const question = blockQuestions[currentIndex];
+    if (!question) return null;
+
     return (
         <>
-            <ProgressBarUI
-                progress={progress}
-                currentIndex={currentIndex}
-                sections={SECTIONS}
-                sectionsDone={sectionsDone}
-                currentSection={currentSection}
-            />
+            {/* Progress bar */}
+            <div className="progress-container">
+                <div className="progress-inner">
+                    <div className="progress-meta">
+                        <span className="progress-label">{currentBlock?.label}</span>
+                        <span className="progress-count">
+                            {currentIndex} / {totalQ} completed
+                        </span>
+                    </div>
+                    <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${progress}%` }} />
+                    </div>
+                </div>
+            </div>
 
             <div className="assessment-main">
                 <div className="container">
                     <div className="question-card">
-                        {/* Section tag */}
-                        {currentSection && (
-                            <div className="question-section-tag">
-                                📌 {currentSection.label}
-                            </div>
-                        )}
+                        <div className="question-section-tag">
+                            📌 {currentBlock?.label}
+                        </div>
 
                         <div className="question-number">
-                            Question {currentIndex + 1} of {QUESTIONS.length}
-                            {question.required && <span className="required-badge">* Required</span>}
+                            Question {currentIndex + 1} of {totalQ}
+                            <span className="required-badge">* Required</span>
                         </div>
+
                         <div className="question-text">{question.text}</div>
 
-                        {question.helpText && (
-                            <div className="question-help">{question.helpText}</div>
-                        )}
+                        <div
+                            className="question-help"
+                            style={{ marginBottom: 24 }}
+                        >
+                            Select the option that best matches <strong>current practice</strong>.
+                            Choose based on what happens in typical projects, not best-case examples.
+                        </div>
 
-                        {/* Render by type */}
-                        <QuestionInput
+                        {/* Maturity options */}
+                        <MaturityInput
                             question={question}
                             value={responses[question.id]}
                             onChange={(v) => setAnswer(question.id, v)}
@@ -178,30 +250,18 @@ export default function AssessmentPage() {
 
                         {showError && (
                             <div className="validation-error">
-                                ⚠ Please answer this question before continuing.
+                                ⚠ Please select an option before continuing.
                             </div>
                         )}
 
                         {/* Navigation */}
                         <div className="assessment-nav">
-                            <button
-                                className="btn btn-ghost"
-                                onClick={handleBack}
-                                disabled={currentIndex === 0}
-                            >
+                            <button className="btn btn-ghost" onClick={handleBack}>
                                 ← Back
                             </button>
-
-                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                                {!question.required && (
-                                    <button className="nav-skip" onClick={handleSkip}>
-                                        Skip
-                                    </button>
-                                )}
-                                <button className="btn btn-primary" onClick={handleNext}>
-                                    {currentIndex === QUESTIONS.length - 1 ? "Finish & View Results →" : "Next →"}
-                                </button>
-                            </div>
+                            <button className="btn btn-primary" onClick={handleNext}>
+                                {currentIndex === totalQ - 1 ? "Finish & View Results →" : "Next →"}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -210,146 +270,66 @@ export default function AssessmentPage() {
     );
 }
 
-/* ── Progress Bar ─────────────────────────────────────────────────────────── */
-function ProgressBarUI({ progress, currentIndex, sections, sectionsDone, currentSection }) {
+/* ── Maturity Question Renderer ─────────────────────────────────────────────── */
+const MATURITY_LABELS = ["1 — Initial", "2 — Developing", "3 — Defined", "4 — Managed", "5 — Optimizing", "N/A"];
+const MATURITY_COLORS = {
+    "1": { bg: "rgba(198,40,40,0.06)", border: "#c62828", text: "#c62828" },
+    "2": { bg: "rgba(230,81,0,0.06)", border: "#e65100", text: "#e65100" },
+    "3": { bg: "rgba(249,168,37,0.06)", border: "#f9a825", text: "#795548" },
+    "4": { bg: "rgba(46,125,50,0.07)", border: "#2e7d32", text: "#2e7d32" },
+    "5": { bg: "rgba(13,71,161,0.06)", border: "#0d47a1", text: "#0d47a1" },
+    "na": { bg: "rgba(100,100,100,0.05)", border: "#9e9e9e", text: "#9e9e9e" },
+};
+
+function MaturityInput({ question, value, onChange }) {
     return (
-        <div className="progress-container">
-            <div className="progress-inner">
-                <div className="progress-meta">
-                    <span className="progress-label">
-                        {currentSection ? currentSection.label : "Assessment"}
-                    </span>
-                    <span className="progress-count">
-                        {currentIndex} / {QUESTIONS.length} completed
-                    </span>
-                </div>
-                <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${progress}%` }} />
-                </div>
-                <div className="progress-sections">
-                    {sections.map((s) => (
-                        <span
-                            key={s.id}
-                            className={`section-chip${sectionsDone.includes(s.id) ? " done" :
-                                    currentSection?.id === s.id ? " active" : ""
-                                }`}
-                        >
-                            {sectionsDone.includes(s.id) ? "✓ " : ""}{s.label}
-                        </span>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/* ── Question Input Renderer ─────────────────────────────────────────────── */
-function QuestionInput({ question, value, onChange }) {
-    const { type, options } = question;
-
-    if (type === "radio") {
-        return (
-            <div className="options-list">
-                {options.map((opt) => (
+        <div className="options-list">
+            {question.options.map((opt, idx) => {
+                const isSelected = value === opt.value;
+                const colors = MATURITY_COLORS[opt.value] || {};
+                return (
                     <label
                         key={opt.value}
-                        className={`option-item${value === opt.value ? " selected" : ""}`}
+                        className={`option-item${isSelected ? " selected" : ""}`}
+                        style={
+                            isSelected
+                                ? { borderColor: colors.border, background: colors.bg }
+                                : {}
+                        }
                     >
                         <input
                             type="radio"
                             name={question.id}
                             value={opt.value}
-                            checked={value === opt.value}
+                            checked={isSelected}
                             onChange={() => onChange(opt.value)}
+                            style={{ accentColor: colors.border || "var(--blue)" }}
                         />
-                        <span>{opt.label}</span>
-                    </label>
-                ))}
-            </div>
-        );
-    }
-
-    if (type === "checkbox") {
-        const selected = Array.isArray(value) ? value : [];
-        const toggle = (v) => {
-            if (selected.includes(v)) onChange(selected.filter((x) => x !== v));
-            else onChange([...selected, v]);
-        };
-        return (
-            <div className="options-list">
-                {options.map((opt) => (
-                    <label
-                        key={opt.value}
-                        className={`option-item${selected.includes(opt.value) ? " selected" : ""}`}
-                    >
-                        <input
-                            type="checkbox"
-                            value={opt.value}
-                            checked={selected.includes(opt.value)}
-                            onChange={() => toggle(opt.value)}
-                        />
-                        <span>{opt.label}</span>
-                    </label>
-                ))}
-            </div>
-        );
-    }
-
-    if (type === "scale") {
-        return (
-            <div className="scale-container">
-                <div className="scale-labels">
-                    <span>1 — Lowest</span>
-                    <span>5 — Highest</span>
-                </div>
-                <div className="scale-options">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                        <div
-                            key={n}
-                            className={`scale-option${value === String(n) ? " selected" : ""}`}
-                            onClick={() => onChange(String(n))}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => e.key === "Enter" && onChange(String(n))}
-                        >
-                            <span className="scale-num">{n}</span>
+                        <div>
+                            {opt.value !== "na" && (
+                                <span
+                                    style={{
+                                        display: "inline-block",
+                                        fontSize: "0.72rem",
+                                        fontWeight: 700,
+                                        padding: "1px 8px",
+                                        borderRadius: 999,
+                                        background: isSelected ? colors.border : "var(--gray-200)",
+                                        color: isSelected ? "#fff" : "var(--gray-500)",
+                                        marginBottom: 4,
+                                        letterSpacing: "0.04em",
+                                    }}
+                                >
+                                    {MATURITY_LABELS[idx]}
+                                </span>
+                            )}
+                            <div style={{ fontSize: "0.9rem", color: "var(--gray-700)", lineHeight: 1.5 }}>
+                                {opt.label}
+                            </div>
                         </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
-    if (type === "yesno") {
-        return (
-            <div className="yesno-options">
-                {["Yes", "No"].map((opt) => (
-                    <button
-                        key={opt}
-                        className={`yesno-btn${value === opt
-                                ? opt === "Yes" ? " selected-yes" : " selected-no"
-                                : ""
-                            }`}
-                        onClick={() => onChange(opt)}
-                    >
-                        {opt === "Yes" ? "✅" : "❌"} {opt}
-                    </button>
-                ))}
-            </div>
-        );
-    }
-
-    if (type === "text") {
-        return (
-            <textarea
-                className="text-input"
-                placeholder="Enter your response here…"
-                value={value || ""}
-                onChange={(e) => onChange(e.target.value)}
-                rows={4}
-            />
-        );
-    }
-
-    return null;
+                    </label>
+                );
+            })}
+        </div>
+    );
 }
