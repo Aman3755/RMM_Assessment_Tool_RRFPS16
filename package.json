@@ -1,0 +1,17 @@
+{
+  "name": "rmm-assessment-tool",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "next": "^16.1.6",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}
