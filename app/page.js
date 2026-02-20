@@ -50,7 +50,7 @@ export default function HomePage() {
                             {
                                 icon: "📝",
                                 title: "Answer Questions",
-                                desc: `Complete ${SECTIONS.length} short sections covering organization, data, processes, and people.`,
+                                desc: `Complete ${SECTIONS.length} short sections covering organization, data, and processes.`,
                             },
                             {
                                 icon: "📊",
