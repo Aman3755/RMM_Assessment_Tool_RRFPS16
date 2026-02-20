@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BLOCKS, TOOL_CONFIG } from "@/data/questions";
 
 export default function HomePage() {
     return (
@@ -10,7 +9,7 @@ export default function HomePage() {
                 <div className="container">
                     <div className="hero-content">
                         <div className="hero-eyebrow">TDOT Research &amp; Innovation Office</div>
-                        <h1 className="hero-title">{TOOL_CONFIG.title}</h1>
+                        <h1 className="hero-title">Research Maturity Framework Self-Evaluation</h1>
                         <p className="hero-description">
                             A structured self-evaluation tool to help TDOT&apos;s Research and Innovation
                             Office assess current management capabilities and develop an implementation
@@ -24,7 +23,7 @@ export default function HomePage() {
                             </Link>
                             <div className="hero-meta">
                                 <span className="hero-meta-item">📋 3 dimensions assessed</span>
-                                <span className="hero-meta-item">⏱ ~{TOOL_CONFIG.estimatedMinutes} minutes</span>
+                                <span className="hero-meta-item">⏱ ~15 minutes</span>
                                 <span className="hero-meta-item">📄 PDF report included</span>
                             </div>
                         </div>
@@ -87,31 +86,31 @@ export default function HomePage() {
                     <div className="sections-grid">
                         {[
                             {
-                                block: BLOCKS[0],
                                 icon: "📋",
+                                title: "Block 1: Program Management",
                                 questions: 13,
                                 desc: "Covers research intake and prioritization, scope definition, role clarity, scheduling, milestone tracking, progress reporting, technical reviews, issue management, change control, records management, vendor oversight, quality expectations, and project closeout.",
                             },
                             {
-                                block: BLOCKS[1],
                                 icon: "🔬",
+                                title: "Block 2: Evaluation & Impact Measurement",
                                 questions: 13,
                                 desc: "Covers outcome definition, post-completion evaluation, implementation translation, tracking of adopted outcomes, barrier analysis, reporting quality, internal communication of findings, stakeholder involvement, post-delivery feedback, strategic alignment, records management, long-term impact assessment, and evaluation consistency.",
                             },
                             {
-                                block: BLOCKS[2],
                                 icon: "🧾",
+                                title: "Block 3: Invoicing Process",
                                 questions: 12,
                                 desc: "Covers invoice submission requirements, package consistency, review process, approval responsibilities, processing time predictability, correction management, status communication, records organization, recurring issue resolution, reviewer coordination, requirement change communication, and practice consistency.",
                             },
-                        ].map(({ block, icon, questions, desc }) => (
-                            <div key={block.id} className="section-card">
-                                <div className="section-icon">{icon}</div>
-                                <h3 style={{ marginBottom: 4 }}>{block.label}</h3>
+                        ].map((block) => (
+                            <div key={block.title} className="section-card">
+                                <div className="section-icon">{block.icon}</div>
+                                <h3 style={{ marginBottom: 4 }}>{block.title}</h3>
                                 <p style={{ fontSize: "0.78rem", color: "var(--blue)", fontWeight: 600, marginBottom: 12 }}>
-                                    {questions} questions · 1–5 maturity scale + N/A
+                                    {block.questions} questions · 1–5 maturity scale + N/A
                                 </p>
-                                <p style={{ fontSize: "0.87rem", lineHeight: 1.6, color: "var(--gray-500)" }}>{desc}</p>
+                                <p style={{ fontSize: "0.87rem", lineHeight: 1.6, color: "var(--gray-500)" }}>{block.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -148,7 +147,7 @@ export default function HomePage() {
                         Ready to assess your research maturity?
                     </h2>
                     <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 32, fontSize: "1rem" }}>
-                        Takes approximately {TOOL_CONFIG.estimatedMinutes} minutes. A full PDF report is generated automatically at the end.
+                        Takes approximately 15 minutes. A full PDF report is generated automatically at the end.
                     </p>
                     <Link href="/assessment" className="btn btn-primary btn-lg">
                         Begin Self-Evaluation →
