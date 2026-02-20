@@ -2,15 +2,26 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { generateActionPlan, getMaturityLevel, MATURITY_LEVELS } from "@/lib/scoring";
+import { generateActionPlan, MATURITY_LEVELS } from "@/lib/scoring";
+import { QUESTIONS_BY_BLOCK } from "@/data/questions";
 
 const STORAGE_KEY = "rmm_assessment_responses";
 const INFO_KEY = "rmm_respondent_info";
 const ROUTING_KEY = "rmm_routing_block";
 
+const LEVEL_LABEL = {
+    "1": "Level 1 – Initial",
+    "2": "Level 2 – Developing",
+    "3": "Level 3 – Defined",
+    "4": "Level 4 – Managed",
+    "5": "Level 5 – Optimizing",
+    "na": "N/A",
+};
+
 export default function ResultsPage() {
     const [results, setResults] = useState(null);
     const [respondentInfo, setRespondentInfo] = useState({});
+    const [responses, setResponses] = useState({});
     const [showResponses, setShowResponses] = useState(false);
     const [mounted, setMounted] = useState(false);
 
@@ -19,13 +30,12 @@ export default function ResultsPage() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             const infoRaw = localStorage.getItem(INFO_KEY);
-            const block = localStorage.getItem(ROUTING_KEY);
+            const blockId = localStorage.getItem(ROUTING_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
 
-            if (raw && block) {
-                const responses = JSON.parse(raw);
-                setResults(generateActionPlan(responses, block));
-            }
+            setResponses(parsed);
             if (infoRaw) setRespondentInfo(JSON.parse(infoRaw));
+            if (raw && blockId) setResults(generateActionPlan(parsed, blockId));
         } catch (e) {
             console.error("Results load error:", e);
         }
@@ -33,11 +43,10 @@ export default function ResultsPage() {
 
     const handleDownloadPDF = async () => {
         try {
-            const responses = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
             const blockId = localStorage.getItem(ROUTING_KEY);
             const info = JSON.parse(localStorage.getItem(INFO_KEY) || "{}");
             const { exportToPDF } = await import("@/lib/pdfExport");
-            exportToPDF(results, responses, info);
+            await exportToPDF(results, responses, info);
         } catch (e) {
             console.error("PDF export error:", e);
             alert("PDF generation failed. Please try again.");
@@ -70,26 +79,37 @@ export default function ResultsPage() {
         );
     }
 
-    const { blockLabel, overallScore, maturityLevel, actionItems, totalAnswered, totalQuestions } = results;
+    const {
+        blockLabel,
+        overallScore,
+        maturityLevel,
+        actionItems,
+        totalAnswered,
+        totalQuestions,
+        blockId,
+    } = results;
+
     const highs = actionItems.filter((a) => a.priority === "High");
     const mediums = actionItems.filter((a) => a.priority === "Medium");
     const lows = actionItems.filter((a) => a.priority === "Low");
+
+    const questions = QUESTIONS_BY_BLOCK[blockId] ?? [];
 
     return (
         <div className="results-main">
             <div className="container">
 
-                {/* ── Header ────────────────────────────────────────────────────────── */}
-                <div className="results-header">
-                    <div className="results-header-content">
-                        <h1>Assessment Complete</h1>
+                {/* ── Header ─────────────────────────────────────────────────────── */}
+                <div className="results-header-card">
+                    <div>
+                        <h1 style={{ color: "var(--blue)", marginBottom: 6 }}>Assessment Complete</h1>
                         {respondentInfo.name && (
-                            <p style={{ fontSize: "1rem", opacity: 0.85 }}>
-                                Results for <strong>{respondentInfo.name}</strong>
+                            <p style={{ fontWeight: 600, color: "var(--gray-700)" }}>
+                                {respondentInfo.name}
                                 {respondentInfo.organization && ` — ${respondentInfo.organization}`}
                             </p>
                         )}
-                        <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>
+                        <p style={{ color: "var(--gray-500)", fontSize: "0.9rem", marginTop: 4 }}>
                             {blockLabel} · {totalAnswered} of {totalQuestions} questions answered
                         </p>
                     </div>
@@ -97,67 +117,87 @@ export default function ResultsPage() {
                         <button className="btn btn-secondary" onClick={handleDownloadPDF}>
                             ⬇ Download PDF
                         </button>
-                        <button className="btn btn-ghost-light" onClick={() => window.print()}>
+                        <button className="btn btn-ghost" onClick={() => window.print()}>
                             🖨 Print
                         </button>
-                        <button className="btn btn-ghost-light" onClick={handleReset}>
+                        <button className="btn btn-ghost" onClick={handleReset}>
                             ↺ Retake
                         </button>
                     </div>
                 </div>
 
-                {/* ── Maturity Score Card ───────────────────────────────────────────── */}
+                {/* ── Maturity Score ────────────────────────────────────────────── */}
                 <div className="score-section">
                     <div className="score-card-large">
-                        <div className="score-value">
-                            {overallScore !== null ? overallScore.toFixed(1) : "—"}
-                            <span className="score-max"> / 5.0</span>
+                        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+                            <span style={{ fontSize: "3.5rem", fontWeight: 800, lineHeight: 1, color: maturityLevel?.color || "var(--blue)" }}>
+                                {overallScore !== null ? overallScore.toFixed(1) : "—"}
+                            </span>
+                            <span style={{ fontSize: "1.1rem", color: "var(--gray-400)", marginBottom: 8 }}>/ 5.0</span>
                         </div>
+
                         <div
-                            className="score-badge"
-                            style={{ background: maturityLevel?.color, display: "inline-block", padding: "4px 16px", borderRadius: 999, color: "#fff", fontWeight: 700, fontSize: "1rem", marginTop: 8 }}
+                            style={{
+                                display: "inline-block",
+                                padding: "4px 16px",
+                                borderRadius: 999,
+                                background: maturityLevel?.color || "var(--blue)",
+                                color: "#fff",
+                                fontWeight: 700,
+                                fontSize: "0.95rem",
+                                marginTop: 8,
+                                marginBottom: 12,
+                            }}
                         >
                             Level {maturityLevel?.level}: {maturityLevel?.label}
                         </div>
-                        <p className="score-description" style={{ marginTop: 12, fontSize: "0.9rem", color: "var(--gray-500)" }}>
+
+                        <p style={{ color: "var(--gray-500)", fontSize: "0.9rem", marginBottom: 20 }}>
                             {maturityLevel?.description}
                         </p>
 
-                        {/* Maturity progress bar */}
-                        <div className="maturity-bar-wrapper" style={{ marginTop: 24 }}>
-                            <div className="maturity-bar-track">
-                                <div
-                                    className="maturity-bar-fill"
-                                    style={{
-                                        width: `${overallScore !== null ? (overallScore / 5) * 100 : 0}%`,
-                                        background: maturityLevel?.color,
-                                    }}
-                                />
-                            </div>
-                            <div className="maturity-scale-labels">
-                                {MATURITY_LEVELS.map((l) => (
-                                    <span
-                                        key={l.level}
-                                        style={{
-                                            color: overallScore >= l.min ? l.color : "var(--gray-300)",
-                                            fontWeight: overallScore >= l.min && overallScore < (l.max + 0.01) ? 700 : 400,
-                                        }}
-                                    >
-                                        {l.label}
-                                    </span>
-                                ))}
-                            </div>
+                        {/* Progress bar */}
+                        <div style={{ background: "var(--gray-200)", borderRadius: 999, height: 12, overflow: "hidden" }}>
+                            <div
+                                style={{
+                                    width: `${overallScore !== null ? (overallScore / 5) * 100 : 0}%`,
+                                    height: "100%",
+                                    background: maturityLevel?.color || "var(--blue)",
+                                    borderRadius: 999,
+                                    transition: "width 1s ease",
+                                }}
+                            />
+                        </div>
+
+                        {/* Scale labels */}
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                marginTop: 6,
+                                fontSize: "0.75rem",
+                                color: "var(--gray-400)",
+                            }}
+                        >
+                            {MATURITY_LEVELS.map((l) => (
+                                <span
+                                    key={l.level}
+                                    style={{ color: overallScore >= l.min ? l.color : "var(--gray-300)", fontWeight: overallScore >= l.min && overallScore <= l.max ? 700 : 400 }}
+                                >
+                                    {l.label}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                {/* ── Action Plan ───────────────────────────────────────────────────── */}
+                {/* ── Action Plan ───────────────────────────────────────────────── */}
                 <div className="action-plan-section">
                     <h2 className="section-heading">Recommended Action Plan</h2>
-                    <p className="section-subheading">
+                    <p style={{ color: "var(--gray-500)", marginBottom: 28, marginTop: -12 }}>
                         {actionItems.length === 0
-                            ? "No priority actions identified — your practices are performing at a high level across all dimensions."
-                            : `${actionItems.length} improvement area${actionItems.length > 1 ? "s" : ""} identified. Focus on High priority items first.`}
+                            ? "No priority actions identified — your practices are strong across all dimensions."
+                            : `${actionItems.length} improvement area${actionItems.length !== 1 ? "s" : ""} identified. Focus on High priority items first.`}
                     </p>
 
                     {[
@@ -166,98 +206,90 @@ export default function ResultsPage() {
                         { label: "Low Priority", items: lows, color: "#2e7d32", icon: "🟢" },
                     ].map(({ label, items, color, icon }) =>
                         items.length === 0 ? null : (
-                            <div key={label} className="priority-group">
-                                <h3 className="priority-group-label" style={{ color }}>
-                                    {icon} {label} <span style={{ fontWeight: 400, fontSize: "0.85rem" }}>({items.length})</span>
+                            <div key={label} style={{ marginBottom: 32 }}>
+                                <h3 style={{ color, marginBottom: 12, fontWeight: 700 }}>
+                                    {icon} {label}{" "}
+                                    <span style={{ fontWeight: 400, fontSize: "0.85rem", color: "var(--gray-500)" }}>
+                                        ({items.length})
+                                    </span>
                                 </h3>
-                                {items.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className={`action-item priority-${item.priority.toLowerCase()}`}
-                                    >
-                                        <div className="action-item-header">
-                                            <span className={`priority-badge priority-badge-${item.priority.toLowerCase()}`}>
-                                                {item.priority}
-                                            </span>
-                                            <span className="action-score">
-                                                Current score: <strong>{item.score}/5</strong>
-                                            </span>
+                                <div className="action-items">
+                                    {items.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className={`action-item priority-${item.priority}`}
+                                        >
+                                            <div className="action-item-header">
+                                                <span className={`priority-badge ${item.priority}`}>
+                                                    {item.priority}
+                                                </span>
+                                                <span style={{ fontSize: "0.82rem", color: "var(--gray-400)" }}>
+                                                    Current score: <strong style={{ color: "var(--gray-700)" }}>{item.score} / 5</strong>
+                                                </span>
+                                            </div>
+                                            <h3 style={{ fontSize: "1.02rem", marginBottom: 8 }}>{item.title}</h3>
+                                            <p className="action-description">{item.description}</p>
                                         </div>
-                                        <h4 className="action-title">{item.title}</h4>
-                                        <p className="action-desc">{item.description}</p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         )
                     )}
                 </div>
 
-                {/* ── Response Summary (collapsible) ────────────────────────────────── */}
-                <div className="responses-section">
+                {/* ── Response Summary ──────────────────────────────────────────── */}
+                <div style={{ marginTop: 40 }}>
                     <button
-                        className="btn btn-outline"
+                        className="btn btn-ghost"
                         onClick={() => setShowResponses((v) => !v)}
+                        style={{ width: "100%", justifyContent: "space-between" }}
                     >
-                        {showResponses ? "▲ Hide" : "▼ Show"} My Responses
+                        <span>{showResponses ? "▲ Hide" : "▼ Show"} My Responses</span>
                     </button>
 
                     {showResponses && (
-                        <ResponsesTable blockId={results.blockId} />
+                        <div
+                            style={{
+                                marginTop: 16,
+                                background: "var(--white)",
+                                borderRadius: "var(--radius-md)",
+                                border: "1px solid var(--gray-200)",
+                                overflow: "hidden",
+                            }}
+                        >
+                            <table className="response-table">
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: 40, textAlign: "center" }}>#</th>
+                                        <th>Question</th>
+                                        <th style={{ width: 200 }}>Your Response</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {questions.map((q, i) => (
+                                        <tr key={q.id}>
+                                            <td style={{ textAlign: "center", color: "var(--gray-400)" }}>{i + 1}</td>
+                                            <td>{q.text}</td>
+                                            <td style={{ fontWeight: 500 }}>
+                                                {LEVEL_LABEL[responses[q.id]] ?? (
+                                                    <em style={{ color: "var(--gray-400)" }}>—</em>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
 
-                {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
+                {/* ── Bottom CTA ───────────────────────────────────────────────── */}
                 <div style={{ textAlign: "center", padding: "40px 0 60px" }}>
                     <button className="btn btn-primary btn-lg" onClick={handleDownloadPDF}>
                         ⬇ Download Full PDF Report
                     </button>
                 </div>
-
             </div>
-        </div>
-    );
-}
-
-/* ── Response summary table ───────────────────────────────────────────────── */
-const LEVEL_LABELS = { "1": "Level 1 – Initial", "2": "Level 2 – Developing", "3": "Level 3 – Defined", "4": "Level 4 – Managed", "5": "Level 5 – Optimizing", na: "N/A" };
-
-function ResponsesTable({ blockId }) {
-    const [questions, setQuestions] = useState([]);
-    const [responses, setResponses] = useState({});
-
-    useEffect(() => {
-        import("@/data/questions").then(({ QUESTIONS_BY_BLOCK }) => {
-            setQuestions(QUESTIONS_BY_BLOCK[blockId] ?? []);
-        });
-        try {
-            setResponses(JSON.parse(localStorage.getItem("rmm_assessment_responses") || "{}"));
-        } catch { }
-    }, [blockId]);
-
-    if (!questions.length) return null;
-
-    return (
-        <div className="responses-table-wrapper" style={{ marginTop: 20 }}>
-            <table className="responses-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Question</th>
-                        <th>Your Response</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {questions.map((q, i) => (
-                        <tr key={q.id}>
-                            <td style={{ textAlign: "center", color: "var(--gray-400)", width: 40 }}>{i + 1}</td>
-                            <td style={{ fontSize: "0.85rem" }}>{q.text}</td>
-                            <td style={{ fontSize: "0.85rem", fontWeight: 500 }}>
-                                {LEVEL_LABELS[responses[q.id]] ?? <em style={{ color: "var(--gray-400)" }}>—</em>}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
         </div>
     );
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { BLOCKS, TOOL_CONFIG } from "@/data/questions";
 
@@ -7,72 +5,84 @@ export default function HomePage() {
     return (
         <div className="home-page">
 
-            {/* ── Hero ──────────────────────────────────────────────────────────── */}
+            {/* ── Hero ──────────────────────────────────────────────────────── */}
             <section className="hero">
-                <div className="hero-content">
-                    <div className="hero-badge">TDOT Research &amp; Innovation Office</div>
-                    <h1 className="hero-title">{TOOL_CONFIG.title}</h1>
-                    <p className="hero-subtitle">
-                        A structured self-evaluation tool to assess TDOT&apos;s research management
-                        capabilities and identify targeted improvement priorities across program
-                        management, evaluation, and invoicing.
-                    </p>
-                    <div className="hero-cta">
-                        <Link href="/assessment" className="btn btn-primary btn-lg">
-                            Start Assessment →
-                        </Link>
-                        <div className="hero-meta">
-                            <span>📋 3 dimensions assessed</span>
-                            <span>⏱ ~{TOOL_CONFIG.estimatedMinutes} minutes</span>
-                            <span>📄 PDF report included</span>
+                <div className="container">
+                    <div className="hero-content">
+                        <div className="hero-eyebrow">TDOT Research &amp; Innovation Office</div>
+                        <h1 className="hero-title">{TOOL_CONFIG.title}</h1>
+                        <p className="hero-description">
+                            A structured self-evaluation tool to help TDOT&apos;s Research and Innovation
+                            Office assess current management capabilities and develop an implementation
+                            plan for moving to a higher level of capability. The tool assesses research
+                            maturity across three dimensions — Program Management, Evaluation and Impact
+                            Measurement, and Invoicing Process.
+                        </p>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 16 }}>
+                            <Link href="/assessment" className="btn btn-primary btn-lg">
+                                Start Self-Evaluation →
+                            </Link>
+                            <div className="hero-meta">
+                                <span className="hero-meta-item">📋 3 dimensions assessed</span>
+                                <span className="hero-meta-item">⏱ ~{TOOL_CONFIG.estimatedMinutes} minutes</span>
+                                <span className="hero-meta-item">📄 PDF report included</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* ── How it works ──────────────────────────────────────────────────── */}
+            {/* ── How it works ──────────────────────────────────────────────── */}
             <section className="features-section">
                 <div className="container">
-                    <h2 className="section-heading">How It Works</h2>
+                    <h2 className="section-heading" style={{ marginBottom: 8 }}>How It Works</h2>
+                    <p className="section-subheading">Four simple steps to your personalized maturity report.</p>
                     <div className="features-grid">
                         {[
                             {
-                                icon: "�",
-                                title: "1. Enter Your Profile",
+                                icon: "👤",
+                                step: "Step 1",
+                                title: "Enter Your Profile",
                                 desc: "Provide your name, organization, and role. This information appears on your personalized PDF report.",
                             },
                             {
-                                icon: "�",
-                                title: "2. Select Your Role",
-                                desc: "Choose the functional area that best reflects your responsibilities — you'll answer only the questions most relevant to you.",
+                                icon: "🔀",
+                                step: "Step 2",
+                                title: "Select Your Role",
+                                desc: "Choose the functional area that best reflects your responsibilities. You will only answer questions relevant to your role.",
                             },
                             {
-                                icon: "�",
-                                title: `3. Answer ${Math.max(...Object.values({ pm: 13, ev: 13, inv: 12 }))} Questions`,
+                                icon: "📝",
+                                step: "Step 3",
+                                title: "Answer Questions",
                                 desc: "Each question presents five maturity-level descriptions. Select the one that best reflects current practice — not the best-case scenario.",
                             },
                             {
-                                icon: "�",
-                                title: "4. Receive Your Action Plan",
+                                icon: "📊",
+                                step: "Step 4",
+                                title: "Receive Your Action Plan",
                                 desc: "Get a maturity score and a prioritized list of improvement actions tailored to your responses, ready to download as a PDF.",
                             },
                         ].map((f) => (
-                            <div key={f.title} className="feature-card">
+                            <div key={f.step} className="feature-card">
                                 <div className="feature-icon">{f.icon}</div>
-                                <h3>{f.title}</h3>
-                                <p>{f.desc}</p>
+                                <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--blue)", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>
+                                    {f.step}
+                                </div>
+                                <h3 style={{ fontSize: "1rem", marginBottom: 8 }}>{f.title}</h3>
+                                <p style={{ fontSize: "0.87rem", lineHeight: 1.6 }}>{f.desc}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ── Assessment Blocks ─────────────────────────────────────────────── */}
+            {/* ── Three Dimensions ──────────────────────────────────────────── */}
             <section className="sections-overview">
                 <div className="container">
-                    <h2 className="section-heading">Three Dimensions of Maturity</h2>
-                    <p className="section-subheading">
-                        You will answer questions in the dimension that matches your primary role.
+                    <h2 className="section-heading" style={{ marginBottom: 8 }}>Three Dimensions of Research Maturity</h2>
+                    <p className="section-subheading" style={{ marginBottom: 32 }}>
+                        You will answer questions only in the dimension that matches your primary role.
                     </p>
                     <div className="sections-grid">
                         {[
@@ -80,56 +90,67 @@ export default function HomePage() {
                                 block: BLOCKS[0],
                                 icon: "📋",
                                 questions: 13,
-                                desc:
-                                    "Covers research intake, prioritization, scope definition, scheduling, milestone tracking, progress reporting, reviews, issue management, change control, records, vendor oversight, quality, and closeout.",
+                                desc: "Covers research intake and prioritization, scope definition, role clarity, scheduling, milestone tracking, progress reporting, technical reviews, issue management, change control, records management, vendor oversight, quality expectations, and project closeout.",
                             },
                             {
                                 block: BLOCKS[1],
                                 icon: "🔬",
                                 questions: 13,
-                                desc:
-                                    "Covers outcome definition, post-completion evaluation, implementation translation, tracking, barrier analysis, reporting quality, internal communication, stakeholder involvement, feedback, strategic alignment, records, long-term impact, and consistency.",
+                                desc: "Covers outcome definition, post-completion evaluation, implementation translation, tracking of adopted outcomes, barrier analysis, reporting quality, internal communication of findings, stakeholder involvement, post-delivery feedback, strategic alignment, records management, long-term impact assessment, and evaluation consistency.",
                             },
                             {
                                 block: BLOCKS[2],
                                 icon: "🧾",
                                 questions: 12,
-                                desc:
-                                    "Covers submission requirements, package consistency, review process, approval roles, processing predictability, error management, status communication, records, recurring issues, reviewer coordination, requirement updates, and practice consistency.",
+                                desc: "Covers invoice submission requirements, package consistency, review process, approval responsibilities, processing time predictability, correction management, status communication, records organization, recurring issue resolution, reviewer coordination, requirement change communication, and practice consistency.",
                             },
                         ].map(({ block, icon, questions, desc }) => (
                             <div key={block.id} className="section-card">
                                 <div className="section-icon">{icon}</div>
-                                <h3>{block.label}</h3>
-                                <p className="section-meta">{questions} questions · 1–5 maturity scale</p>
-                                <p className="section-desc">{desc}</p>
+                                <h3 style={{ marginBottom: 4 }}>{block.label}</h3>
+                                <p style={{ fontSize: "0.78rem", color: "var(--blue)", fontWeight: 600, marginBottom: 12 }}>
+                                    {questions} questions · 1–5 maturity scale + N/A
+                                </p>
+                                <p style={{ fontSize: "0.87rem", lineHeight: 1.6, color: "var(--gray-500)" }}>{desc}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ── Instructions note ─────────────────────────────────────────────── */}
-            <section className="instructions-note">
+            {/* ── Instructions ──────────────────────────────────────────────── */}
+            <section style={{ padding: "48px 0", background: "var(--gray-50)" }}>
                 <div className="container">
                     <div className="note-card">
-                        <h3>📌 Instructions</h3>
-                        <ul>
-                            <li>Select the option that best matches <strong>current practice</strong>.</li>
-                            <li>Choose based on what happens in <strong>typical projects</strong>, not best-case examples.</li>
-                            <li>If an item is outside your role or truly not applicable, select <strong>N/A</strong>.</li>
-                            <li>Your responses are saved automatically so you can continue where you left off.</li>
+                        <h3 style={{ marginBottom: 16, color: "var(--blue)" }}>📌 Before You Begin</h3>
+                        <ul style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 20 }}>
+                            <li style={{ fontSize: "0.93rem", lineHeight: 1.6, color: "var(--gray-700)" }}>
+                                Select the option that best matches <strong>current practice</strong>.
+                            </li>
+                            <li style={{ fontSize: "0.93rem", lineHeight: 1.6, color: "var(--gray-700)" }}>
+                                Choose based on what happens in <strong>typical projects</strong>, not best-case examples.
+                            </li>
+                            <li style={{ fontSize: "0.93rem", lineHeight: 1.6, color: "var(--gray-700)" }}>
+                                If an item is outside your role or truly not applicable, select <strong>N/A</strong>.
+                            </li>
+                            <li style={{ fontSize: "0.93rem", lineHeight: 1.6, color: "var(--gray-700)" }}>
+                                Your responses are saved automatically — you can continue where you left off if you navigate away.
+                            </li>
                         </ul>
                     </div>
                 </div>
             </section>
 
-            {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
+            {/* ── Bottom CTA ────────────────────────────────────────────────── */}
             <section className="cta-section">
-                <div className="container" style={{ textAlign: "center" }}>
-                    <h2>Ready to assess your research maturity?</h2>
-                    <p>Takes approximately {TOOL_CONFIG.estimatedMinutes} minutes. A full PDF report is generated automatically.</p>
-                    <Link href="/assessment" className="btn btn-primary btn-lg" style={{ marginTop: 24 }}>
+                <div className="container">
+                    <h2 style={{ color: "var(--white)", marginBottom: 12 }}>
+                        Ready to assess your research maturity?
+                    </h2>
+                    <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 32, fontSize: "1rem" }}>
+                        Takes approximately {TOOL_CONFIG.estimatedMinutes} minutes. A full PDF report is generated automatically at the end.
+                    </p>
+                    <Link href="/assessment" className="btn btn-primary btn-lg">
                         Begin Self-Evaluation →
                     </Link>
                 </div>
