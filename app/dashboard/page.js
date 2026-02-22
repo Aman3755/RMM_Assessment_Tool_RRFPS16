@@ -3,7 +3,7 @@
 export default function DashboardPage() {
   const streamlitUrl =
     process.env.NEXT_PUBLIC_STREAMLIT_URL ||
-    "https://rmm-dashboard-idejpyk5faxllb59nihwwt.streamlit.app/";
+    "https://rmm-dashboard.onrender.com";
 
   return (
     <div style={{ height: "100vh", width: "100%" }}>
