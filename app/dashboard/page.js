@@ -1,57 +1,61 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 export default function DashboardPage() {
-  const router = useRouter();
+  const [url, setUrl] = useState("http://localhost:8501");
 
-  const streamlitUrl =
-    process.env.NEXT_PUBLIC_STREAMLIT_URL ||
-    "https://rmm-dashboard.onrender.com"; // replace with your actual render URL if different
+  const iframeSrc = useMemo(() => {
+    // Streamlit sometimes uses query params, keep it simple
+    return url.trim();
+  }, [url]);
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      
-      {/* Top Navigation Bar */}
       <div
         style={{
-          padding: "12px 20px",
-          background: "#0d47a1",
-          color: "white",
+          padding: "12px 16px",
+          borderBottom: "1px solid rgba(0,0,0,0.08)",
           display: "flex",
+          gap: 10,
           alignItems: "center",
-          justifyContent: "space-between",
         }}
       >
-        <div style={{ fontWeight: 600 }}>
-          RMM Analytics Dashboard
-        </div>
+        <div style={{ fontWeight: 700 }}>Analytics Dashboard (Streamlit)</div>
 
-        <button
-          onClick={() => router.push("/")}
-          style={{
-            padding: "8px 14px",
-            borderRadius: "6px",
-            border: "none",
-            background: "white",
-            color: "#0d47a1",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          ← Back to Assessment
-        </button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 12, opacity: 0.7 }}>URL</span>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            style={{
+              width: 320,
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: "1px solid rgba(0,0,0,0.15)",
+              outline: "none",
+            }}
+          />
+          <a
+            href={iframeSrc}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid rgba(0,0,0,0.15)",
+              textDecoration: "none",
+            }}
+          >
+            Open ↗
+          </a>
+        </div>
       </div>
 
-      {/* Streamlit iframe */}
       <iframe
-        src={streamlitUrl}
-        title="RMM Analytics Dashboard"
-        style={{
-          flex: 1,
-          width: "100%",
-          border: "none",
-        }}
+        src={iframeSrc}
+        title="Streamlit Dashboard"
+        style={{ flex: 1, border: "none", width: "100%" }}
       />
     </div>
   );
