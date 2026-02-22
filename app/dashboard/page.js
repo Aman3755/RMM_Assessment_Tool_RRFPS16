@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 
 export default function DashboardPage() {
-  const [url, setUrl] = useState("http://localhost:8501");
+  const streamlitUrl =
+    process.env.NEXT_PUBLIC_STREAMLIT_URL ||
+    "https://rmm-dashboard-idejpyk5faxllb59nihwwt.streamlit.app/";
 
   const iframeSrc = useMemo(() => {
     // Streamlit sometimes uses query params, keep it simple
