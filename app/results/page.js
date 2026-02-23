@@ -118,6 +118,9 @@ export default function ResultsPage() {
                         <button className="btn btn-secondary" onClick={handleDownloadPDF}>
                             ⬇ Download PDF
                         </button>
+                        <Link href="/dashboard" className="btn btn-ghost" style={{ marginLeft: 12 }}>
+                            View Analytics Dashboard →
+                        </Link>
                         <button className="btn btn-ghost" onClick={() => window.print()}>
                             🖨 Print
                         </button>
